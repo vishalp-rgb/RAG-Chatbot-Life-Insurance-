@@ -3,7 +3,7 @@
 'use strict';
 const L = window.LIFE;
 const {GOALS,GOAL_ORDER,CFG,CATS,P,CO,S,ROWS,COLS,SL,LF,R,F,LOGOS,isAnnuityCat,typeOfCat,rowsOf,money,pct,inrShort} = L;
-const LOGO_URL = 'https://www.bajajcapitalinsurance.com/assets/images/bajajcapital-logo.webp';
+const LOGO_URL = window.BC_LOGO;
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sleep = ms => new Promise(r=>setTimeout(r,ms));

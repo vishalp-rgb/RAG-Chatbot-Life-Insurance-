@@ -1,7 +1,7 @@
 import json, re, sys
-import os; B=os.path.dirname(os.path.abspath(__file__))+'/'
-d=json.load(open(''+B+'../data/lps.json')); logos=json.load(open(''+B+'../data/logos.json'))
-LOGO='https://www.bajajcapitalinsurance.com/assets/images/bajajcapital-logo.webp'
+B='/tmp/claude-0/-home-claude/84a49289-1cd4-508d-96e6-502923088e78/scratchpad/build/'
+d=json.load(open('/tmp/lps2.json')); logos=json.load(open('/tmp/logos.json'))
+LOGO=open(B+'logo.txt').read().strip()
 css=open(B+'style.css').read(); a1=open(B+'app1.js').read(); a2=open(B+'app2.js').read()
 data='window.LPS_DATA='+json.dumps(d,separators=(',',':'))+';\nwindow.LPS_DATA.LOGOS='+json.dumps(logos,separators=(',',':'))+';'
 html=f'''<!DOCTYPE html>
@@ -19,6 +19,7 @@ html=f'''<!DOCTYPE html>
 </style>
 <script>
 {data}
+window.BC_LOGO='{LOGO}';
 </script>
 </head>
 <body>
@@ -68,5 +69,5 @@ html=f'''<!DOCTYPE html>
 </body>
 </html>
 '''
-out=sys.argv[1] if len(sys.argv)>1 else B+'../index.html'
+out=sys.argv[1] if len(sys.argv)>1 else B+'life-insurance-ai-assistant.html'
 open(out,'w').write(html); print(out,len(html))
