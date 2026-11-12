@@ -7,3 +7,11 @@ Guided chatbot: client goal → age (typed) → recommended product type → str
 - `data/` – plan data (`lps.json`) and insurer logos
 
 Rebuild: `python3 src/build.py`. A RAG-based version is planned next.
+
+## Deploy (Cloudflare Workers)
+```
+npm i -g wrangler && wrangler login      # or set CLOUDFLARE_API_TOKEN
+python3 src/build.py && cp index.html public/index.html
+wrangler deploy                          # -> https://life-ai.<your-subdomain>.workers.dev
+# later, for the RAG step: wrangler secret put GEMINI_API_KEY
+```
