@@ -93,6 +93,35 @@ function scrollTo(row){
   if(row && row.offsetHeight > scroller.clientHeight-60) scroller.scrollTop = row.offsetTop - 16;
   else scroller.scrollTop = scroller.scrollHeight;
 }
+
+/* ---------- AI answers (Gemini via the Worker's /api/chat) ---------- */
+const aiHist=[];
+function aiContext(){
+  const s=st(), c={};
+  c.client={goal:s.goal?GOALS[s.goal].lbl:null, age:s.age};
+  if(s.focus!=null){
+    const pid=s.focus, rowsAll=byProd[pid].map(i=>R[i]), cat=CATS[rowsAll[0][F.cat]], cf=CFG[cat], age=ageOf(pid,s.focusAge||s.age||35);
+    const strip=h=>String(h).replace(/<[^>]+>/g,'');
+    const seen={}, pats=[];
+    rowsAt(pid,age).forEach(i=>{ const r=R[i], k=[ROWS[r[F.row]],COLS[r[F.col]],SL[r[F.sl]],LF[r[F.lf]],r[F.fpc]].join('|'); if(seen[k]) return; seen[k]=1;
+      pats.push({pay:L.pptLabel(ROWS[r[F.row]]).t, [L.ptHeading(cf)]:L.ptLabel(COLS[r[F.col]],cf).t, sumAssured:SL[r[F.sl]]||undefined, life:LF[r[F.lf]]||undefined, channel:r[F.fpc]===1?'FPC':'ANG/LAP', details:sentences(r,cat).map(strip)}); });
+    c.plan={name:P[pid], insurer:CO[rowsAll[0][F.co]], category:L.catTitle(cat), about:L.catDesc(cat), entryAges:[Math.min(...rowsAll.map(r=>r[F.age])),Math.max(...rowsAll.map(r=>r[F.age]))], dataForAge:age, patterns:pats.slice(0,24)};
+  } else if(s.res&&s.res.length){
+    c.shortlist=s.res.slice(0,5).map(i=>{ const r=R[i]; return {plan:P[r[F.prod]], insurer:CO[r[F.co]], details:sentences(r,CATS[r[F.cat]]).map(h=>h.replace(/<[^>]+>/g,''))}; });
+  }
+  return c;
+}
+async function aiAnswer(text){
+  try{
+    const r=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({question:text,context:aiContext(),history:aiHist.slice(-6)})});
+    if(!r.ok) return false;
+    const j=await r.json(); if(!j.answer) return false;
+    aiHist.push({q:text,a:j.answer});
+    const html=esc(j.answer).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').split(/\n{2,}/).map(p=>'<p>'+p.replace(/\n/g,'<br>')+'</p>').join('');
+    await post(bubble(`${lead('auto_awesome','Answer')}${html}`)+chips(st().focus!=null?[{a:'askprod',v:'',l:'Ask about another plan'},{a:'reset',v:'',l:'New query'}]:[{a:'goal_menu',v:'',l:'Recommend a plan',primary:true}]));
+    return true;
+  }catch(e){ return false; }
+}
 function userSay(text){
   const d=document.createElement('div'); d.className='urow';
   d.innerHTML=`<div class="ububble">${esc(text)}</div><div class="umeta"><span>${now()}</span><span class="ms fill">done_all</span></div>`;
@@ -613,6 +642,7 @@ async function route(text){
   const sug=suggestProducts(text);
   if(sug.length) return post(bubble(`${lead('manage_search','Did you mean one of these plans?')}<p>I couldn’t match “${esc(text)}” exactly.</p>${ask('Pick the <strong>plan</strong> you mean, or type the name again.')}`)
     + opts(sug.map(pid=>({a:'prod',v:pid,t:P[pid],d:`${CO[R[byProd[pid][0]][F.co]]} · ${L.catTitle(CATS[R[byProd[pid][0]][F.cat]])}`,icon:'description',l:P[pid]}))));
+  if(await aiAnswer(text)) return;
   if(!s.goal) return post(bubble(`${lead('support_agent','Let’s narrow it down')}<p>I recommend plans by walking through the client’s <strong>goal → product type → payment pattern</strong>. Tell me the goal, or tap one below.</p>`)+chips(GOAL_ORDER.map(g=>({a:'goal',v:g,l:GOALS[g].lbl}))));
   if(s.age==null) return post(bubble(`${lead('cake','Client age')}<p>Please type the client’s age as a number between 18 and 80 — for example <em>“37”</em>.</p>`));
   return post(bubble(`${lead('support_agent','Use the options above')}<p>Pick one of the choices in the last question — or start again with <strong>New query</strong>. Free-form answers from the product documents will arrive with the knowledge-base version.</p>`));
