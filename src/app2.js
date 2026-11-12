@@ -633,7 +633,7 @@ async function route(text){
   if(/compare/.test(t)){ return s.res&&s.res.length>1?compare(Math.min(3,s.res.length)):noCompare(); }
   if(/what is|what’s|what's|explain|meaning|difference|\bvs\b|define/.test(t)){
     for(const k of GLOSS_KEYS) if(GLOSS_RX[k].test(t)) return gloss(k);
-    if(!GOAL_ORDER.some(g=>GOAL_RX[g].test(t))) return glossMenu();
+    if(!GOAL_ORDER.some(g=>GOAL_RX[g].test(t))){ if(await aiAnswer(text)) return; return glossMenu(); }
   }
   for(const g of GOAL_ORDER) if(GOAL_RX[g].test(t)){
     s.goal=g; clear('ty','cat','x','ppt','pt'); if(age&&age>=18&&age<=80) s.age=age; return nextStep();
@@ -645,7 +645,7 @@ async function route(text){
   if(await aiAnswer(text)) return;
   if(!s.goal) return post(bubble(`${lead('support_agent','Let’s narrow it down')}<p>I recommend plans by walking through the client’s <strong>goal → product type → payment pattern</strong>. Tell me the goal, or tap one below.</p>`)+chips(GOAL_ORDER.map(g=>({a:'goal',v:g,l:GOALS[g].lbl}))));
   if(s.age==null) return post(bubble(`${lead('cake','Client age')}<p>Please type the client’s age as a number between 18 and 80 — for example <em>“37”</em>.</p>`));
-  return post(bubble(`${lead('support_agent','Use the options above')}<p>Pick one of the choices in the last question — or start again with <strong>New query</strong>. Free-form answers from the product documents will arrive with the knowledge-base version.</p>`));
+  return post(bubble(`${lead('support_agent','Use the options above')}<p>Pick one of the choices in the last question — or start again with <strong>New query</strong>.</p>`));
 }
 $('#send').addEventListener('click',()=>{ const v=inp.value; inp.value=''; route(v); });
 inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); const v=inp.value; inp.value=''; route(v); } });
