@@ -1,4 +1,4 @@
-# Life Insurance AI Assistant (first cut)
+# Life Insurance AI Assistant 
 
 Guided chatbot: client goal → age (typed) → recommended product type → structure → payment pattern → top plans → plan explanation. Also answers questions about any named plan.
 
