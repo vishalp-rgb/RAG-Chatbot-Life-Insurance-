@@ -1,0 +1,9 @@
+# Secrets - never commit
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+
+# Generated
+.wrangler/
+node_modules/

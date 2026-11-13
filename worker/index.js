@@ -20,19 +20,31 @@ export default {
       { role: 'model', parts: [{ text: String(h.a || '').slice(0, 1500) }] },
     ]);
     const ctx = JSON.stringify(body.context || {}).slice(0, 24000);
-    const model = env.GEMINI_MODEL || 'gemini-2.5-flash';
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM }] },
-        contents: [...hist, { role: 'user', parts: [{ text: `PLAYBOOK DATA:\n${ctx}\n\nQUESTION: ${q}` }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 700 },
-      }),
-    });
-    if (!r.ok) return Response.json({ error: 'upstream' }, { status: 502 });
-    const j = await r.json();
-    const answer = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('').trim();
+    const models = [env.GEMINI_MODEL || 'gemini-flash-lite-latest',
+      ...String(env.GEMINI_FALLBACK_MODELS || 'gemini-3.1-flash-lite,gemini-flash-latest').split(',').map(m => m.trim()).filter(Boolean)];
+    let answer = '';
+    for (const model of models) {
+      try {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: SYSTEM }] },
+            contents: [...hist, { role: 'user', parts: [{ text: `PLAYBOOK DATA:
+${ctx}
+
+QUESTION: ${q}` }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+          }),
+          signal: AbortSignal.timeout(20000),
+        });
+        if (!r.ok) continue;
+        const j = await r.json();
+        answer = (j.candidates?.[0]?.content?.parts || []).filter(p => !p.thought).map(p => p.text || '').join('').trim();
+        if (answer) break;
+      } catch { /* try next model */ }
+    }
+    if (!answer) return Response.json({ error: 'upstream' }, { status: 502 });
     return Response.json({ answer });
   },
 };
